@@ -21,5 +21,5 @@ src/
 cargo run
 
 ## Dependencies
-colored = "3"
-rand = "0.10"
+- colored = "3"
+- rand = "0.10"
