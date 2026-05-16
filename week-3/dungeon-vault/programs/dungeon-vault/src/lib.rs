@@ -27,4 +27,8 @@ pub mod dungeon_vault {
     pub fn join_dungeon(ctx: Context<JoinDungeon>, dungeon_id: u64) -> Result<()> {
         ctx.accounts.handler(dungeon_id, &ctx.bumps)
     }
+
+    pub fn submit_choice(ctx: Context<SubmitChoice>, dungeon_id: u64, choice: u8) -> Result<()> {
+        ctx.accounts.handler(dungeon_id, choice)
+    }
 }
