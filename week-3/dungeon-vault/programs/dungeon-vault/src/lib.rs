@@ -6,7 +6,6 @@ mod errors;
 mod events;
 mod ix;
 mod states;
-mod utils;
 
 use ix::*;
 #[program]
@@ -41,5 +40,12 @@ pub mod dungeon_vault {
         random_value: [u8; 32],
     ) -> Result<()> {
         request_randomness::callback_randomness_handler(ctx, random_value)
+    }
+
+    pub fn resolve_round<'info>(
+        ctx: Context<'_, '_, 'info, 'info, ResolveRound<'info>>,
+        dungeon_id: u64,
+    ) -> Result<()> {
+        ctx.accounts.handler(dungeon_id, &ctx.remaining_accounts)
     }
 }

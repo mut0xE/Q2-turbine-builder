@@ -39,4 +39,7 @@ pub enum DungeonError {
 
     #[msg("Overflow")]
     Overflow,
+
+    #[msg("Underflow")]
+    Underflow,
 }
