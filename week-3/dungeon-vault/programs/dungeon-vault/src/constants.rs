@@ -7,3 +7,5 @@ pub const MAX_CHOICE: u8 = 3;
 pub const DUNGEON_SEED: &[u8] = b"dungeon";
 pub const PLAYER_STATE_SEED: &[u8] = b"player";
 pub const VAULT_SEED: &[u8] = b"vault";
+
+pub const DISCRIMINATOR: usize = 8;

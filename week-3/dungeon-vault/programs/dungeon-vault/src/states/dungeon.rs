@@ -7,6 +7,7 @@ pub struct Dungeon {
     pub entry_fee: u64,
     pub dungeon_id: u64,
     pub total_players: u8,
+    pub max_players: u8,
     pub alive_players: u8,
     pub round: u8,
     pub trap_number: u8,

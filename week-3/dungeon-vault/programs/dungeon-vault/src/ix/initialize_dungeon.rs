@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    constants::{DUNGEON_SEED, MAX_PLAYERS, MIN_PLAYERS, VAULT_SEED},
+    constants::{DISCRIMINATOR, DUNGEON_SEED, MAX_PLAYERS, MIN_PLAYERS, VAULT_SEED},
     errors::DungeonError,
+    events::DungeonInitialized,
     states::{Dungeon, GameStatus},
 };
 
@@ -15,7 +16,7 @@ pub struct InitializeDungeon<'info> {
     #[account(
         init,
         payer = creator,
-        space = Dungeon::INIT_SPACE,
+        space = DISCRIMINATOR + Dungeon::INIT_SPACE,
         seeds = [
             DUNGEON_SEED,
             dungeon_id.to_le_bytes().as_ref(),
@@ -25,6 +26,7 @@ pub struct InitializeDungeon<'info> {
     )]
     pub dungeon: Account<'info, Dungeon>,
 
+    /// CHECK: vault PDA only stores SOL
     #[account(
            mut,
             seeds = [
@@ -46,6 +48,8 @@ impl<'info> InitializeDungeon<'info> {
         max_players: u8,
         bump: &InitializeDungeonBumps,
     ) -> Result<()> {
+        require!(entry_fee > 0, DungeonError::InvalidEntryFee);
+
         require!(
             max_players >= MIN_PLAYERS && max_players <= MAX_PLAYERS,
             DungeonError::NotEnoughPlayers
@@ -56,12 +60,19 @@ impl<'info> InitializeDungeon<'info> {
             entry_fee,
             dungeon_id,
             total_players: max_players,
+            max_players,
             alive_players: 0,
             round: 0,
             trap_number: 0,
-            status: GameStatus::Active,
+            status: GameStatus::Waiting,
             dungeon_bump: bump.dungeon,
             vault_bump: bump.vault,
+        });
+
+        emit!(DungeonInitialized {
+            authority: self.creator.key(),
+            entry_fee,
+            max_players,
         });
 
         Ok(())

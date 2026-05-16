@@ -4,6 +4,9 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum DungeonError {
+    #[msg("Invalid entry fee")]
+    InvalidEntryFee,
+
     #[msg("Dungeon is already full")]
     DungeonFull,
 
@@ -33,4 +36,7 @@ pub enum DungeonError {
 
     #[msg("Not enough players to start")]
     NotEnoughPlayers,
+
+    #[msg("Overflow")]
+    Overflow,
 }
