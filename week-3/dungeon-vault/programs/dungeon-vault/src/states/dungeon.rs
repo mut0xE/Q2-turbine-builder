@@ -11,7 +11,8 @@ pub struct Dungeon {
     pub round: u8,
     pub trap_number: u8,
     pub status: GameStatus,
-    pub bump: u8,
+    pub dungeon_bump: u8,
+    pub vault_bump: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
