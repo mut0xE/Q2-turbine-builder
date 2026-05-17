@@ -6,11 +6,10 @@ use ephemeral_vrf_sdk::{
 };
 
 use crate::{
-    constants::{DUNGEON_SEED, MAX_CHOICE, PLAYER_STATE_SEED},
+    constants::{DUNGEON_SEED, MAX_CHOICE},
     errors::DungeonError,
     instruction::CallbackRandomness,
-    states::{Dungeon, GameStatus, PlayerState},
-    ID,
+    states::{Dungeon, GameStatus},
 };
 
 #[vrf]
@@ -21,6 +20,7 @@ pub struct RequestRandomness<'info> {
     pub payer: Signer<'info>,
 
     #[account(
+        mut,
            seeds = [
                DUNGEON_SEED,
                dungeon_id.to_le_bytes().as_ref(),
@@ -30,18 +30,8 @@ pub struct RequestRandomness<'info> {
        )]
     pub dungeon: Account<'info, Dungeon>,
 
-    #[account(
-    seeds = [
-    PLAYER_STATE_SEED,
-    dungeon.key().as_ref(),
-    payer.key().as_ref()],
-    bump
-    )
-    ]
-    pub player_state: Account<'info, PlayerState>,
-
     /// CHECK: The oracle queue
-    #[account(mut, address = ephemeral_vrf_sdk::consts::DEFAULT_QUEUE)]
+    #[account(mut, address = ephemeral_vrf_sdk::consts::DEFAULT_EPHEMERAL_QUEUE)]
     pub oracle_queue: AccountInfo<'info>,
 }
 
@@ -57,7 +47,7 @@ pub struct CallbackRequestRandomness<'info> {
 }
 
 impl<'info> RequestRandomness<'info> {
-    pub fn handler(&mut self, client_seed: u8) -> Result<()> {
+    pub fn handler(&mut self, _dungeon_id: u64, client_seed: u8) -> Result<()> {
         let dungeon = &mut self.dungeon;
         require!(
             dungeon.status == GameStatus::Active,
@@ -69,7 +59,7 @@ impl<'info> RequestRandomness<'info> {
         let ix = create_request_randomness_ix(RequestRandomnessParams {
             payer: self.payer.key(),
             oracle_queue: self.oracle_queue.key(),
-            callback_program_id: ID,
+            callback_program_id: crate::ID,
             callback_discriminator: CallbackRandomness::DISCRIMINATOR.to_vec(),
             accounts_metas: Some(vec![SerializableAccountMeta {
                 pubkey: self.dungeon.key(),
@@ -80,6 +70,7 @@ impl<'info> RequestRandomness<'info> {
             ..Default::default()
         });
         self.invoke_signed_vrf(&self.payer.to_account_info(), &ix)?;
+        msg!("Randomness requested ");
         Ok(())
     }
 }

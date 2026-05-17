@@ -20,18 +20,6 @@ pub struct ResolveRound<'info> {
 
        )]
     pub dungeon: Account<'info, Dungeon>,
-
-    #[account(
-        mut,
-        seeds = [
-            PLAYER_STATE_SEED,
-            dungeon.key().as_ref(),
-            player_state.player.as_ref()
-        ],
-        bump = player_state.bump
-
-    )]
-    pub player_state: Account<'info, PlayerState>,
 }
 
 impl<'info> ResolveRound<'info> {
@@ -55,6 +43,11 @@ impl<'info> ResolveRound<'info> {
             if !player_state.alive {
                 continue;
             }
+            msg!(
+                "current choice:{}, player:{}",
+                player_state.current_choice,
+                player_state.player
+            );
 
             if player_state.current_choice == dungeon.trap_number {
                 player_state.alive = false;
@@ -68,11 +61,19 @@ impl<'info> ResolveRound<'info> {
                     player: player_state.player,
                     round: dungeon.round,
                 });
+                msg!("inside exact trap number {}", dungeon.trap_number);
             }
+
+            player_state.current_choice = 0;
+            player_state.exit(&crate::ID)?;
         }
 
-        if dungeon.alive_players == 1 {
+        if dungeon.alive_players == 0 {
             dungeon.status = GameStatus::Finished;
+            msg!("game ended in draw");
+        } else if dungeon.alive_players == 1 {
+            dungeon.status = GameStatus::Finished;
+            msg!("game finished with winner");
         } else {
             dungeon.round = dungeon.round.checked_add(1).ok_or(DungeonError::Overflow)?;
 

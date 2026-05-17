@@ -8,6 +8,7 @@ pub struct SubmitChoice<'info> {
     pub player: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [
             DUNGEON_SEED,
             dungeon_id.to_le_bytes().as_ref(),

@@ -64,7 +64,7 @@ impl<'info> JoinDungeon<'info> {
         );
 
         require!(
-            dungeon.max_players < dungeon.total_players,
+            dungeon.total_players < dungeon.max_players,
             DungeonError::DungeonFull
         );
 
@@ -94,6 +94,11 @@ impl<'info> JoinDungeon<'info> {
         dungeon.alive_players = dungeon
             .alive_players
             .checked_add(1)
+            .ok_or(DungeonError::Overflow)?;
+
+        dungeon.amount = dungeon
+            .amount
+            .checked_add(dungeon.entry_fee)
             .ok_or(DungeonError::Overflow)?;
 
         if dungeon.total_players == dungeon.max_players {

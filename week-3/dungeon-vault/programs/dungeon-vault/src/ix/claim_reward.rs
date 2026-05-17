@@ -77,7 +77,24 @@ impl<'info> ClaimReward<'info> {
 
         require!(!dungeon.claimed, DungeonError::AlreadyClaimed);
 
-        require!(player_state.alive, DungeonError::PlayerEliminated);
+        if dungeon.alive_players == 0 {
+            require!(
+                self.caller.key() == dungeon.authority,
+                DungeonError::Unauthorized
+            );
+            msg!("Draw game: creator withdrawing vault");
+        } else {
+            require!(dungeon.alive_players == 1, DungeonError::Unauthorized);
+
+            require!(player_state.alive, DungeonError::PlayerEliminated);
+
+            require!(
+                self.caller.key() == player_state.player,
+                DungeonError::Unauthorized
+            );
+
+            msg!("Winner claiming reward");
+        }
 
         let dugeon_key = dungeon.key();
         let vault_seeds: &[&[&[u8]]] = &[&[VAULT_SEED, dugeon_key.as_ref(), &[dungeon.vault_bump]]];

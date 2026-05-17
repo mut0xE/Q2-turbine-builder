@@ -1,13 +1,16 @@
 use anchor_lang::prelude::*;
 
-declare_id!("CMmjB7xBoXeNHjXaLoxzGDiabrXfHNXgaLmQYzL1TBUq");
+declare_id!("CuXrhPFnmbt2Ktnpk5RXCR56oLnu9165hyt1zxvCGn7W");
 mod constants;
 mod errors;
 mod events;
 mod ix;
 mod states;
 
+use ephemeral_rollups_sdk::anchor::ephemeral;
 use ix::*;
+
+#[ephemeral]
 #[program]
 pub mod dungeon_vault {
 
@@ -31,8 +34,12 @@ pub mod dungeon_vault {
         ctx.accounts.handler(dungeon_id, choice)
     }
 
-    pub fn request_randomness(ctx: Context<RequestRandomness>, client_seed: u8) -> Result<()> {
-        ctx.accounts.handler(client_seed)
+    pub fn request_randomness(
+        ctx: Context<RequestRandomness>,
+        dungeon_id: u64,
+        client_seed: u8,
+    ) -> Result<()> {
+        ctx.accounts.handler(dungeon_id, client_seed)
     }
 
     pub fn callback_randomness(
@@ -47,5 +54,20 @@ pub mod dungeon_vault {
         dungeon_id: u64,
     ) -> Result<()> {
         ctx.accounts.handler(dungeon_id, &ctx.remaining_accounts)
+    }
+
+    pub fn claim_reward(ctx: Context<ClaimReward>, dungeon_id: u64) -> Result<()> {
+        ctx.accounts.handler(dungeon_id)
+    }
+
+    pub fn delegate_account(ctx: Context<DelegateInput>, account_type: AccountType) -> Result<()> {
+        delegate::delegate(ctx, account_type)
+    }
+
+    pub fn undelegate<'info>(
+        ctx: Context<'_, '_, '_, 'info, Undelegate<'info>>,
+        dungeon_id: u64,
+    ) -> Result<()> {
+        undelegate_handler(ctx, dungeon_id)
     }
 }
