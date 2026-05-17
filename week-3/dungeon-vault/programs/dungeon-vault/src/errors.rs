@@ -7,6 +7,12 @@ pub enum DungeonError {
     #[msg("Invalid entry fee")]
     InvalidEntryFee,
 
+    #[msg("InsufficientFunds")]
+    InsufficientFunds,
+
+    #[msg("AlreadyClaimed")]
+    AlreadyClaimed,
+
     #[msg("Dungeon is already full")]
     DungeonFull,
 

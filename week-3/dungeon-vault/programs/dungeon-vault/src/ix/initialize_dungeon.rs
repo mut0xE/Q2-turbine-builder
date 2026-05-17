@@ -59,7 +59,7 @@ impl<'info> InitializeDungeon<'info> {
             authority: self.creator.key(),
             entry_fee,
             dungeon_id,
-            total_players: max_players,
+            total_players: 0,
             max_players,
             alive_players: 0,
             round: 0,
@@ -67,6 +67,8 @@ impl<'info> InitializeDungeon<'info> {
             status: GameStatus::Waiting,
             dungeon_bump: bump.dungeon,
             vault_bump: bump.vault,
+            amount: 0,
+            claimed: false,
         });
 
         emit!(DungeonInitialized {

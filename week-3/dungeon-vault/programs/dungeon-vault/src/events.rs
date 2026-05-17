@@ -20,13 +20,6 @@ pub struct ChoiceSubmitted {
 }
 
 #[event]
-pub struct RandomnessFulfilled {
-    pub dungeon: Pubkey,
-    pub random_value: u64,
-    pub trap_number: u8,
-}
-
-#[event]
 pub struct PlayerEliminated {
     pub player: Pubkey,
     pub round: u8,
