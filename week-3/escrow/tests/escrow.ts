@@ -8,7 +8,13 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
-import { createAccount, createMint, mintTo } from "@solana/spl-token";
+import {
+  createAccount,
+  createMint,
+  getAccount,
+  mintTo,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import { assert } from "chai";
 
 // constants
@@ -116,7 +122,7 @@ describe("escrow", () => {
   it("Maker creates escrow and locks SOL", async () => {
     const makerBefore = await connection.getBalance(maker.publicKey);
 
-    await program.methods
+    const sig = await program.methods
       .make(solAmount, usdcAmount)
       .accounts({
         maker: maker.publicKey,
@@ -127,6 +133,8 @@ describe("escrow", () => {
       })
       .signers([maker])
       .rpc();
+
+    console.log("make sig", sig);
 
     // Vault should hold exactly sol amount
     const vaultBal = await connection.getBalance(vaultPDA);
@@ -210,5 +218,73 @@ describe("escrow", () => {
     } catch (e: any) {
       assert.include(e.message, "InvalidUsdcAmount");
     }
+  });
+
+  it("Taker takes escrow — USDC goes to Maker, SOL goes to Taker", async () => {
+    const takerSolBefore = await connection.getBalance(taker.publicKey);
+    const takerUsdcBefore = (await getAccount(connection, takerUsdc)).amount;
+    const makerUsdcBefore = (await getAccount(connection, makerUsdc)).amount;
+
+    console.log("Taker SOL before  :", takerSolBefore / LAMPORTS_PER_SOL);
+    console.log(
+      "Maker USDC before:",
+      Number(makerUsdcBefore) / 10 ** USDC_DECIMALS
+    );
+    console.log(
+      "Taker USDC before:",
+      Number(takerUsdcBefore) / 10 ** USDC_DECIMALS
+    );
+
+    const sig = await program.methods
+      .take()
+      .accounts({
+        taker: taker.publicKey,
+        maker: maker.publicKey,
+        //@ts-ignore
+        escrow: escrowPDA,
+        vault: vaultPDA,
+        usdcMint,
+        takerUsdc: takerUsdc,
+        makerUsdc: makerUsdc,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([taker])
+      .rpc();
+    console.log("take sig", sig);
+    // Taker received SOL
+    const takerSolAfter = await connection.getBalance(taker.publicKey);
+    assert.isAbove(takerSolAfter, takerSolBefore, "Taker received SOL");
+
+    // Taker USDC decreased
+    const takerUsdcAfter = (await getAccount(connection, takerUsdc)).amount;
+    assert.equal(
+      takerUsdcAfter,
+      takerUsdcBefore - BigInt(usdcAmount.toString()),
+      "Taker spent USDC"
+    );
+
+    // Maker received USDC
+    const makerUsdcAfter = (await getAccount(connection, makerUsdc)).amount;
+    assert.equal(
+      makerUsdcAfter,
+      makerUsdcBefore + BigInt(usdcAmount.toString()),
+      "Maker received USDC"
+    );
+
+    // Vault is empty
+    const vaultBal = await connection.getBalance(vaultPDA);
+    assert.equal(vaultBal, 0, "vault is empty after swap");
+
+    // Escrow marked completed
+    const escrow = await program.account.escrow.fetch(escrowPDA);
+    assert.deepEqual(escrow.status, { completed: {} });
+    assert.equal(escrow.taker.toBase58(), taker.publicKey.toBase58());
+
+    console.log("Taker SOL after  :", takerSolAfter / LAMPORTS_PER_SOL);
+    console.log(
+      "Maker USDC after:",
+      Number(makerUsdcAfter) / 10 ** USDC_DECIMALS
+    );
   });
 });
