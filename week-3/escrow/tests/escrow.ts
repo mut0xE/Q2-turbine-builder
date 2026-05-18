@@ -287,4 +287,107 @@ describe("escrow", () => {
       Number(makerUsdcAfter) / 10 ** USDC_DECIMALS
     );
   });
+
+  it("Maker can cancel an open escrow and gets SOL back", async () => {
+    const testMaker = Keypair.generate();
+    await airdrop(provider, admin.payer, testMaker.publicKey);
+
+    const [escrow2PDA] = PublicKey.findProgramAddressSync(
+      [ESCROW_SEED, testMaker.publicKey.toBuffer()],
+      program.programId
+    );
+    const [vault2PDA] = PublicKey.findProgramAddressSync(
+      [VAULT_SEED, escrow2PDA.toBuffer()],
+      program.programId
+    );
+
+    // Maker creates escrow
+    await program.methods
+      .make(solAmount, usdcAmount)
+      .accounts({
+        maker: testMaker.publicKey,
+        //@ts-ignore
+        escrow: escrow2PDA,
+        vault: vault2PDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([testMaker])
+      .rpc();
+
+    const balBefore = await connection.getBalance(testMaker.publicKey);
+    const vaultBal = await connection.getBalance(vault2PDA);
+
+    assert.equal(vaultBal, solAmount.toNumber(), "vault has SOL before cancel");
+
+    // Maker cancels
+    const sig = await program.methods
+      .cancel()
+      .accounts({
+        maker: testMaker.publicKey,
+        //@ts-ignore
+        escrow: escrow2PDA,
+        vault: vault2PDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([testMaker])
+      .rpc();
+    console.log("cancel sig", sig);
+
+    const vaultAfter = await connection.getBalance(vault2PDA);
+    assert.equal(vaultAfter, 0, "vault empty after cancel");
+
+    const balAfter = await connection.getBalance(testMaker.publicKey);
+
+    const diff = balAfter - balBefore;
+    assert.isAbove(diff, 0, "Maker got SOL back");
+
+    console.log("SOL returned:", diff / LAMPORTS_PER_SOL);
+  });
+
+  it("stranger cannot cancel Maker's escrow", async () => {
+    const testMaker = Keypair.generate();
+    await airdrop(provider, admin.payer, testMaker.publicKey);
+
+    const [escrow3PDA] = PublicKey.findProgramAddressSync(
+      [ESCROW_SEED, testMaker.publicKey.toBuffer()],
+      program.programId
+    );
+    const [vault3PDA] = PublicKey.findProgramAddressSync(
+      [VAULT_SEED, escrow3PDA.toBuffer()],
+      program.programId
+    );
+
+    // Maker creates escrow
+    await program.methods
+      .make(solAmount, usdcAmount)
+      .accounts({
+        maker: testMaker.publicKey,
+        //@ts-ignore
+        escrow: escrow3PDA,
+        vault: vault3PDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([testMaker])
+      .rpc();
+
+    // taker tries to cancel must fail
+    try {
+      await program.methods
+        .cancel()
+        .accounts({
+          maker: testMaker.publicKey,
+          //@ts-ignore
+          escrow: escrow3PDA,
+          vault: vault3PDA,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([taker])
+        .rpc();
+
+      assert.fail("should have thrown");
+    } catch (e: any) {
+      assert.ok(e, "correctly rejected");
+      console.log("Stranger cancel correctly rejected");
+    }
+  });
 });
