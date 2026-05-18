@@ -9,7 +9,7 @@ use anchor_lang::{
 };
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{self, Mint, Token, TokenAccount, Transfer as TokenTransfer},
+    token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
 
 #[derive(Accounts)]
@@ -41,7 +41,10 @@ pub struct Take<'info> {
     pub vault: SystemAccount<'info>,
 
     // USDC mint
-    pub usdc_mint: Account<'info, Mint>,
+    #[account(
+        mint::token_program = token_program
+    )]
+    pub usdc_mint: InterfaceAccount<'info, Mint>,
 
     // Taker USDC token account (source)
     #[account(
@@ -49,20 +52,18 @@ pub struct Take<'info> {
         constraint = taker_usdc.mint  == usdc_mint.key(),
         constraint = taker_usdc.owner == taker.key()
     )]
-    pub taker_usdc: Account<'info, TokenAccount>,
+    pub taker_usdc: InterfaceAccount<'info, TokenAccount>,
 
     // Maker USDC token account (destination)
     #[account(
         init_if_needed,
         payer = taker,
         associated_token::mint = usdc_mint,
-        associated_token::authority = taker,
-        constraint = maker_usdc.mint  == usdc_mint.key(),
-        constraint = maker_usdc.owner == escrow.maker
+        associated_token::authority = maker,
     )]
-    pub maker_usdc: Account<'info, TokenAccount>,
+    pub maker_usdc: InterfaceAccount<'info, TokenAccount>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
 
@@ -73,16 +74,18 @@ pub fn take_handler(ctx: Context<Take>) -> Result<()> {
     let escrow = &mut ctx.accounts.escrow;
 
     // Step 1 — Taker sends USDC to Maker
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
-            TokenTransfer {
+            TransferChecked {
                 from: ctx.accounts.taker_usdc.to_account_info(),
                 to: ctx.accounts.maker_usdc.to_account_info(),
                 authority: ctx.accounts.taker.to_account_info(),
+                mint: ctx.accounts.usdc_mint.to_account_info(),
             },
         ),
         escrow.usdc_amount,
+        ctx.accounts.usdc_mint.decimals,
     )?;
 
     // Step 2 — release vault SOL to Taker

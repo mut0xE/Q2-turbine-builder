@@ -16,7 +16,7 @@ pub struct Make<'info> {
     #[account(
         init,
         payer = maker,
-        space = 8 + Escrow::INIT_SPACE,
+        space = Escrow::DISCRIMINATOR.len() + Escrow::INIT_SPACE,
         seeds = [ESCROW_SEED, maker.key().as_ref()],
         bump
     )]
