@@ -77,7 +77,7 @@ describe("escrow", () => {
       null, // freeze authority
       USDC_DECIMALS
     );
-    console.log("USDC mint:", usdcMint.toBase58());
+    // console.log("USDC mint:", usdcMint.toBase58());
 
     // Create maker's USDC token account
     makerUsdc = await createAccount(
@@ -113,10 +113,10 @@ describe("escrow", () => {
       program.programId
     );
 
-    console.log("escrowPDA :", escrowPDA.toBase58());
-    console.log("vaultPDA  :", vaultPDA.toBase58());
-    console.log("makerUsdc :", makerUsdc.toBase58());
-    console.log("takerUsdc   :", takerUsdc.toBase58());
+    // console.log("escrowPDA :", escrowPDA.toBase58());
+    // console.log("vaultPDA  :", vaultPDA.toBase58());
+    // console.log("makerUsdc :", makerUsdc.toBase58());
+    // console.log("takerUsdc   :", takerUsdc.toBase58());
   });
 
   it("Maker creates escrow and locks SOL", async () => {
@@ -134,7 +134,7 @@ describe("escrow", () => {
       .signers([maker])
       .rpc();
 
-    console.log("make sig", sig);
+    // console.log("make sig", sig);
 
     // Vault should hold exactly sol amount
     const vaultBal = await connection.getBalance(vaultPDA);
@@ -150,12 +150,12 @@ describe("escrow", () => {
     assert.deepEqual(escrow.status, { open: {} });
 
     const makerAfter = await connection.getBalance(maker.publicKey);
-    console.log(
-      `maker balance before: ${makerBefore / LAMPORTS_PER_SOL} and after: ${
-        makerAfter / LAMPORTS_PER_SOL
-      }`
-    );
-    console.log("Vault balance:", vaultBal / LAMPORTS_PER_SOL, "SOL");
+    // console.log(
+    //   `maker balance before: ${makerBefore / LAMPORTS_PER_SOL} and after: ${
+    //     makerAfter / LAMPORTS_PER_SOL
+    //   }`
+    // );
+    // console.log("Vault balance:", vaultBal / LAMPORTS_PER_SOL, "SOL");
   });
 
   it("rejects zero SOL amount", async () => {
@@ -225,15 +225,15 @@ describe("escrow", () => {
     const takerUsdcBefore = (await getAccount(connection, takerUsdc)).amount;
     const makerUsdcBefore = (await getAccount(connection, makerUsdc)).amount;
 
-    console.log("Taker SOL before  :", takerSolBefore / LAMPORTS_PER_SOL);
-    console.log(
-      "Maker USDC before:",
-      Number(makerUsdcBefore) / 10 ** USDC_DECIMALS
-    );
-    console.log(
-      "Taker USDC before:",
-      Number(takerUsdcBefore) / 10 ** USDC_DECIMALS
-    );
+    // console.log("Taker SOL before  :", takerSolBefore / LAMPORTS_PER_SOL);
+    // console.log(
+    //   "Maker USDC before:",
+    //   Number(makerUsdcBefore) / 10 ** USDC_DECIMALS
+    // );
+    // console.log(
+    //   "Taker USDC before:",
+    //   Number(takerUsdcBefore) / 10 ** USDC_DECIMALS
+    // );
 
     const sig = await program.methods
       .take()
@@ -251,7 +251,7 @@ describe("escrow", () => {
       })
       .signers([taker])
       .rpc();
-    console.log("take sig", sig);
+    // console.log("take sig", sig);
     // Taker received SOL
     const takerSolAfter = await connection.getBalance(taker.publicKey);
     assert.isAbove(takerSolAfter, takerSolBefore, "Taker received SOL");
@@ -281,11 +281,11 @@ describe("escrow", () => {
     assert.deepEqual(escrow.status, { completed: {} });
     assert.equal(escrow.taker.toBase58(), taker.publicKey.toBase58());
 
-    console.log("Taker SOL after  :", takerSolAfter / LAMPORTS_PER_SOL);
-    console.log(
-      "Maker USDC after:",
-      Number(makerUsdcAfter) / 10 ** USDC_DECIMALS
-    );
+    // console.log("Taker SOL after  :", takerSolAfter / LAMPORTS_PER_SOL);
+    // console.log(
+    //   "Maker USDC after:",
+    //   Number(makerUsdcAfter) / 10 ** USDC_DECIMALS
+    // );
   });
 
   it("Maker can cancel an open escrow and gets SOL back", async () => {
@@ -331,7 +331,7 @@ describe("escrow", () => {
       })
       .signers([testMaker])
       .rpc();
-    console.log("cancel sig", sig);
+    // console.log("cancel sig", sig);
 
     const vaultAfter = await connection.getBalance(vault2PDA);
     assert.equal(vaultAfter, 0, "vault empty after cancel");
@@ -341,7 +341,7 @@ describe("escrow", () => {
     const diff = balAfter - balBefore;
     assert.isAbove(diff, 0, "Maker got SOL back");
 
-    console.log("SOL returned:", diff / LAMPORTS_PER_SOL);
+    // console.log("SOL returned:", diff / LAMPORTS_PER_SOL);
   });
 
   it("stranger cannot cancel Maker's escrow", async () => {
@@ -387,7 +387,7 @@ describe("escrow", () => {
       assert.fail("should have thrown");
     } catch (e: any) {
       assert.ok(e, "correctly rejected");
-      console.log("Stranger cancel correctly rejected");
+      // console.log("Stranger cancel correctly rejected");
     }
   });
 });
