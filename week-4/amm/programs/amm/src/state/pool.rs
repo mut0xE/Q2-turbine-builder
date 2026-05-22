@@ -16,5 +16,8 @@ pub struct Pool {
     pub mint_x: Pubkey,  // token X mint address
     pub mint_y: Pubkey,  // token Y mint address
     pub lp_mint: Pubkey, // LP token mint, owned by pool PDA
-    pub bump: u8,        // PDA bump
+    pub pool_bump: u8,
+    pub vault_x_bump: u8,
+    pub vault_y_bump: u8,
+    pub lp_bump: u8,
 }
