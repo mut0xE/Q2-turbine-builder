@@ -1,7 +1,10 @@
 use anchor_lang::prelude::*;
 
 declare_id!("9skP2HrosgroRxykvVwF1K4w4FJPTxeuJSpHrgcvRrDK");
+mod instructions;
+mod state;
 
+use instructions::*;
 #[program]
 pub mod amm {
     use super::*;
