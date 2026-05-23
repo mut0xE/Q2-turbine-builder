@@ -89,7 +89,7 @@ impl<'info> Initialize<'info> {
 
         self.config.set_inner(AmmConfig {
             fee_rate: fee,
-            authority: self.payer.key(),
+            authority: Some(self.payer.key()),
             index,
             bump: bumps.config,
         });
@@ -102,6 +102,7 @@ impl<'info> Initialize<'info> {
             pool_bump: bumps.pool,
             vault_x_bump: bumps.vault_x,
             vault_y_bump: bumps.vault_y,
+            locked: false,
             lp_bump: bumps.lp_mint,
         });
         Ok(())

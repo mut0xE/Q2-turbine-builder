@@ -22,4 +22,7 @@ pub enum AmmError {
 
     #[msg("Overflow in math calculation")]
     MathOverflow,
+
+    #[msg("Pool is locked — deposits and swaps are paused")]
+    PoolLocked,
 }
