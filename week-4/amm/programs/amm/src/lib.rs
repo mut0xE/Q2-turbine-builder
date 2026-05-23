@@ -18,4 +18,8 @@ pub mod amm {
     pub fn deposit(ctx: Context<Deposit>, amount_x: u64, amount_y: u64, min_lp: u64) -> Result<()> {
         ctx.accounts.handler(amount_x, amount_y, min_lp)
     }
+
+    pub fn swap(ctx: Context<Swap>, amount_in: u64, min_out: u64, x_to_y: bool) -> Result<()> {
+        ctx.accounts.handler(amount_in, min_out, x_to_y)
+    }
 }

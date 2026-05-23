@@ -21,7 +21,6 @@ pub struct Deposit<'info> {
 
     // pool state
     #[account(
-        mut,
         seeds = [
             SEED_POOL,
             pool.config.as_ref(),
@@ -169,9 +168,14 @@ impl<'info> Deposit<'info> {
     // mint LP tokens to user
     // pool PDA signs because it is the mint authority
     fn mint_lp(&mut self, amount: u64) -> Result<()> {
-        let pool_key = self.pool.key();
-
-        let signer_seeds: &[&[&[u8]]] = &[&[SEED_POOL, pool_key.as_ref(), &[self.pool.pool_bump]]];
+        let seeds = &[
+            SEED_POOL,
+            self.pool.config.as_ref(),
+            self.pool.mint_x.as_ref(),
+            self.pool.mint_y.as_ref(),
+            &[self.pool.pool_bump],
+        ];
+        let signer_seeds = &[&seeds[..]];
 
         let cpi_ctx = CpiContext::new_with_signer(
             self.token_program.to_account_info(),

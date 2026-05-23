@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::AmmError;
+use crate::{constants::FEE_DENOMINATOR, errors::AmmError};
 
 #[event]
 pub struct DepositEvent {
@@ -102,6 +102,65 @@ pub fn calculate_deposit_lp(
     Ok(lp)
 }
 
+/// calculate swap output using x*y=k invariant
+/// when user swaps X in, they get Y out
+/// dy = Y * dx' / (X + dx')
+pub fn calculate_swap(
+    vault_in: u64,
+    vault_out: u64,
+    amount_in: u64,
+    fee_rate: u16,
+) -> Result<(u64, u64)> {
+    require!(amount_in > 0, AmmError::ZeroAmount);
+    require!(vault_in > 0 && vault_out > 0, AmmError::ZeroAmount);
+
+    // deduct fee from input
+    let amount_in_after_fee = (amount_in as u128)
+        .checked_mul((FEE_DENOMINATOR - fee_rate as u64) as u128)
+        .ok_or(AmmError::MathOverflow)?
+        .checked_div(FEE_DENOMINATOR as u128)
+        .ok_or(AmmError::MathOverflow)? as u64;
+
+    // fee stays in vault
+    // that growth is the LP reward
+    let fee = amount_in
+        .checked_sub(amount_in_after_fee)
+        .ok_or(AmmError::MathOverflow)?;
+
+    // calculate output using x * y = k
+    let amount_out = (vault_out as u128)
+        .checked_mul(amount_in_after_fee as u128)
+        .ok_or(AmmError::MathOverflow)?
+        .checked_div(
+            (vault_in as u128)
+                .checked_add(amount_in_after_fee as u128)
+                .ok_or(AmmError::MathOverflow)?,
+        )
+        .ok_or(AmmError::MathOverflow)? as u64;
+
+    require!(amount_out > 0, AmmError::ZeroAmount);
+
+    Ok((amount_out, fee))
+}
+
+/// x_to_y: true  = user sends X gets Y
+/// x_to_y: false = user sends Y gets X
+pub fn swap_tokens(
+    vault_x: u64,
+    vault_y: u64,
+    amount_in: u64,
+    fee_rate: u16,
+    x_to_y: bool,
+) -> Result<(u64, u64)> {
+    if x_to_y {
+        // user sends X to vault_x is in, vault_y is out
+        calculate_swap(vault_x, vault_y, amount_in, fee_rate)
+    } else {
+        // user sends Y to vault_y is in, vault_x is out
+        calculate_swap(vault_y, vault_x, amount_in, fee_rate)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,5 +215,23 @@ mod tests {
     #[test]
     fn test_deposit_lp_zero_vault_fails() {
         assert!(calculate_deposit_lp(0, 400, 200, 10, 40).is_err());
+    }
+
+    // pool: 1000 X, 2000 Y (price = 2 Y per X)
+    // user swaps 100 X to gets Y
+    // amount_in_after_fee = 100 * 9970 / 10000 = 99
+    // dy = 2000 * 99 / (1000 + 99) = 180
+    #[test]
+    fn test_swap_x_to_y_direction() {
+        let (out, fee) = swap_tokens(1000, 2000, 100, 30, true).unwrap();
+        assert_eq!(fee, 1);
+        assert_eq!(out, 180);
+    }
+
+    #[test]
+    fn test_swap_y_to_x_direction() {
+        let (out, fee) = swap_tokens(1000, 2000, 200, 30, false).unwrap();
+        assert_eq!(fee, 1);
+        assert_eq!(out, 90);
     }
 }
