@@ -8,6 +8,9 @@ skip-lint = false
 [programs.localnet]
 amm = "9skP2HrosgroRxykvVwF1K4w4FJPTxeuJSpHrgcvRrDK"
 
+[programs.devnet]
+amm = "9skP2HrosgroRxykvVwF1K4w4FJPTxeuJSpHrgcvRrDK"
+
 [registry]
 url = "https://api.apr.dev"
 
