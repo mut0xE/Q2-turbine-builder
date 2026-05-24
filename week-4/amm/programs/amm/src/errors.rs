@@ -31,4 +31,13 @@ pub enum AmmError {
 
     #[msg("Invalid vault owner")]
     InvalidVaultOwner,
+
+    #[msg("Invalid Config")]
+    InvalidConfig,
+
+    #[msg("Unauthorized — only authority can call this")]
+    Unauthorized,
+
+    #[msg("Authority has been renounced — config is immutable")]
+    AuthorityRenounced,
 }

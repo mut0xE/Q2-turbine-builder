@@ -26,4 +26,15 @@ pub mod amm {
     pub fn withdraw(ctx: Context<Withdraw>, lp_amount: u64, min_x: u64, min_y: u64) -> Result<()> {
         ctx.accounts.handler(lp_amount, min_x, min_y)
     }
+
+    pub fn update_config(
+        ctx: Context<UpdateConfig>,
+        new_fee: Option<u16>,
+        locked: Option<bool>,
+        new_authority: Option<Pubkey>,
+        renounce: bool,
+    ) -> Result<()> {
+        ctx.accounts
+            .handler(new_fee, locked, new_authority, renounce)
+    }
 }
