@@ -161,6 +161,36 @@ pub fn swap_tokens(
     }
 }
 
+/// calculate how much X and Y to return when user burns LP tokens
+/// x_out = X * lp_amount / lp_supply
+/// y_out = Y * lp_amount / lp_supply
+pub fn calculate_withdraw(
+    vault_x: u64,
+    vault_y: u64,
+    lp_supply: u64,
+    lp_amount: u64,
+) -> Result<(u64, u64)> {
+    require!(lp_amount > 0, AmmError::ZeroLpAmount);
+    require!(lp_supply > 0, AmmError::ZeroLpAmount);
+    require!(lp_amount <= lp_supply, AmmError::MathOverflow);
+
+    let x_out = (vault_x as u128)
+        .checked_mul(lp_amount as u128)
+        .ok_or(AmmError::MathOverflow)?
+        .checked_div(lp_supply as u128)
+        .ok_or(AmmError::MathOverflow)? as u64;
+
+    let y_out = (vault_y as u128)
+        .checked_mul(lp_amount as u128)
+        .ok_or(AmmError::MathOverflow)?
+        .checked_div(lp_supply as u128)
+        .ok_or(AmmError::MathOverflow)? as u64;
+
+    require!(x_out > 0 && y_out > 0, AmmError::ZeroAmount);
+
+    Ok((x_out, y_out))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -233,5 +263,12 @@ mod tests {
         let (out, fee) = swap_tokens(1000, 2000, 200, 30, false).unwrap();
         assert_eq!(fee, 1);
         assert_eq!(out, 90);
+    }
+
+    #[test]
+    fn test_withdraw() {
+        let (x_out, y_out) = calculate_withdraw(1000, 2000, 1414, 707).unwrap();
+        assert_eq!(x_out, 500);
+        assert_eq!(y_out, 1000);
     }
 }

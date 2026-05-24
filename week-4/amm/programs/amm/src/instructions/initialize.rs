@@ -1,6 +1,6 @@
 use crate::constants::{
-    DISCRIMINATOR, LP_DECIMALS, MAX_FEE, SEED_AMM_CONFIG, SEED_LP_MINT, SEED_POOL, SEED_VAULT_X,
-    SEED_VAULT_Y,
+    DEFAULT_FEE, DISCRIMINATOR, LP_DECIMALS, MAX_FEE, SEED_AMM_CONFIG, SEED_LP_MINT, SEED_POOL,
+    SEED_VAULT_X, SEED_VAULT_Y,
 };
 use crate::errors::AmmError;
 use crate::state::*;
@@ -8,7 +8,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 #[derive(Accounts)]
-#[instruction(fee: u16)]
+#[instruction(index: u64)]
 pub struct Initialize<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -17,7 +17,7 @@ pub struct Initialize<'info> {
         init,
         payer = payer,
         space = DISCRIMINATOR + AmmConfig::INIT_SPACE,
-        seeds = [SEED_AMM_CONFIG, &fee.to_le_bytes()],
+        seeds = [SEED_AMM_CONFIG, &index.to_le_bytes()],
         bump
     )]
     pub config: Account<'info, AmmConfig>,
@@ -84,8 +84,10 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 impl<'info> Initialize<'info> {
-    pub fn handler(&mut self, fee: u16, index: u16, bumps: &InitializeBumps) -> Result<()> {
-        require!(fee < MAX_FEE, AmmError::InvalidFee);
+    pub fn handler(&mut self, index: u64, fee: Option<u16>, bumps: &InitializeBumps) -> Result<()> {
+        let fee = fee.unwrap_or(DEFAULT_FEE);
+
+        require!(fee <= MAX_FEE, AmmError::InvalidFee);
 
         self.config.set_inner(AmmConfig {
             fee_rate: fee,

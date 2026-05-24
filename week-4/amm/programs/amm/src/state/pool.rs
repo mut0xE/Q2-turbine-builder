@@ -5,7 +5,7 @@ use anchor_lang::prelude::*;
 pub struct AmmConfig {
     pub fee_rate: u16,             // basis points e.g. 30 = 0.3%
     pub authority: Option<Pubkey>, // who can update this config
-    pub index: u16,                // unique index, used as PDA seed
+    pub index: u64,                // unique index, used as PDA seed
     pub bump: u8,                  // PDA bump saved so we don't recompute
 }
 

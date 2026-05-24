@@ -11,8 +11,8 @@ use instructions::*;
 pub mod amm {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, fee: u16, index: u16) -> Result<()> {
-        ctx.accounts.handler(fee, index, &ctx.bumps)
+    pub fn initialize(ctx: Context<Initialize>, index: u64, fee: Option<u16>) -> Result<()> {
+        ctx.accounts.handler(index, fee, &ctx.bumps)
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount_x: u64, amount_y: u64, min_lp: u64) -> Result<()> {
@@ -21,5 +21,9 @@ pub mod amm {
 
     pub fn swap(ctx: Context<Swap>, amount_in: u64, min_out: u64, x_to_y: bool) -> Result<()> {
         ctx.accounts.handler(amount_in, min_out, x_to_y)
+    }
+
+    pub fn withdraw(ctx: Context<Withdraw>, lp_amount: u64, min_x: u64, min_y: u64) -> Result<()> {
+        ctx.accounts.handler(lp_amount, min_x, min_y)
     }
 }

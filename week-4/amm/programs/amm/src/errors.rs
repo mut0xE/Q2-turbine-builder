@@ -25,4 +25,10 @@ pub enum AmmError {
 
     #[msg("Pool is locked — deposits and swaps are paused")]
     PoolLocked,
+
+    #[msg("Invalid mint")]
+    InvalidMint,
+
+    #[msg("Invalid vault owner")]
+    InvalidVaultOwner,
 }

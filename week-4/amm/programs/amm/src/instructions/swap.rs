@@ -37,8 +37,14 @@ pub struct Swap<'info> {
     pub pool: Box<Account<'info, Pool>>,
 
     // token X mint
+    #[account(
+          constraint = mint_x.key() == pool.mint_x @ AmmError::InvalidMint
+      )]
     pub mint_x: Box<InterfaceAccount<'info, Mint>>,
     // token Y mint
+    #[account(
+          constraint = mint_y.key() == pool.mint_y @ AmmError::InvalidMint
+      )]
     pub mint_y: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
@@ -49,7 +55,9 @@ pub struct Swap<'info> {
             mint_x.key().as_ref(),
 
         ],
-        bump = pool.vault_x_bump
+        bump = pool.vault_x_bump,
+        constraint = vault_x.owner == pool.key() @ AmmError::InvalidVaultOwner,
+        constraint = vault_x.mint == mint_x.key() @ AmmError::InvalidMint
     )]
     pub vault_x: Box<InterfaceAccount<'info, TokenAccount>>,
 
@@ -61,7 +69,9 @@ pub struct Swap<'info> {
             mint_y.key().as_ref(),
 
         ],
-        bump = pool.vault_y_bump
+        bump = pool.vault_y_bump,
+        constraint = vault_y.owner == pool.key() @ AmmError::InvalidVaultOwner,
+        constraint = vault_y.mint == mint_y.key() @ AmmError::InvalidMint
     )]
     pub vault_y: Box<InterfaceAccount<'info, TokenAccount>>,
 
