@@ -1,5 +1,5 @@
 use crate::{
-    constants::{LISTING_SEED, MARKET_SEED, OFFER_SEED},
+    constants::{MARKET_SEED, OFFER_SEED},
     error::MarketPlaceError,
     state::{MarketPlace, Offer},
 };
