@@ -22,4 +22,7 @@ pub enum StakingError {
 
     #[msg("Invalid Update Authority")]
     InvalidUpdateAuthority,
+
+    #[msg("No rewards to claim yet — stake longer")]
+    NoRewardsToClaim,
 }
