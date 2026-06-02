@@ -10,7 +10,7 @@ use instructions::*;
 #[program]
 pub mod nft_staking {
 
-    use crate::instructions::{create_collection, mint_asset};
+    use crate::instructions::{create_collection, mint_asset, stake};
 
     use super::*;
 
@@ -32,5 +32,9 @@ pub mod nft_staking {
 
     pub fn mint_asset(ctx: Context<MintAsset>, name: String, uri: String) -> Result<()> {
         mint_asset::handler(ctx, name, uri)
+    }
+
+    pub fn stake(ctx: Context<Stake>) -> Result<()> {
+        stake::handler(ctx)
     }
 }
