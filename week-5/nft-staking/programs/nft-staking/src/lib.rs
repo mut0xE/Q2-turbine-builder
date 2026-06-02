@@ -10,6 +10,8 @@ use instructions::*;
 #[program]
 pub mod nft_staking {
 
+    use crate::instructions::unstake;
+
     use super::*;
 
     pub fn initialize(
@@ -38,5 +40,9 @@ pub mod nft_staking {
 
     pub fn claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
         claim_rewards::handler(ctx)
+    }
+
+    pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
+        unstake::handler(ctx)
     }
 }
