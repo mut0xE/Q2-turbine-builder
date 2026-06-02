@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-nft_staking = "2Y9zrc8BhfB5A2dDZBn98BmPc8AK7G33vDUxScfVRrMf"
+nft_staking = "2eUveEajYZbvYLTCfdrKD7PiXSsdupNMjmw7UyZvF53c"
 
 [registry]
 url = "https://api.apr.dev"
