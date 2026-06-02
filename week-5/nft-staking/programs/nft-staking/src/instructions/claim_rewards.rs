@@ -33,7 +33,7 @@ pub struct ClaimRewards<'info> {
 
     // Config PDA — contains reward_bps and rewards_bump
     #[account(
-        seeds = [CONFIG_SEED, collection.key().as_ref()],
+        seeds = [CONFIG_SEED],
         bump = config.bump,
     )]
     pub config: Account<'info, Config>,
@@ -128,8 +128,7 @@ pub fn handler(ctx: Context<ClaimRewards>) -> Result<()> {
     // STEP 2 — Mint reward tokens to owner
     //
     // config PDA is the mint authority
-    let collection_key = ctx.accounts.collection.key();
-    let config_seeds: &[&[&[u8]]] = &[&[CONFIG_SEED, collection_key.as_ref(), &[config.bump]]];
+    let config_seeds: &[&[&[u8]]] = &[&[CONFIG_SEED, &[config.bump]]];
 
     mint_to(
         CpiContext::new_with_signer(

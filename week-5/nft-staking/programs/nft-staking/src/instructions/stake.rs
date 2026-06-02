@@ -45,7 +45,7 @@ pub struct Stake<'info> {
 
     // Config PDA for this collection pool
     #[account(
-        seeds = [CONFIG_SEED, collection.key().as_ref()],
+        seeds = [CONFIG_SEED],
         bump = config.bump,
     )]
     pub config: Account<'info, Config>,

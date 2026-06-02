@@ -24,7 +24,7 @@ pub struct MintAsset<'info> {
     pub collection: Account<'info, BaseCollectionV1>,
 
     #[account(
-          seeds = [CONFIG_SEED, collection.key().as_ref()],
+          seeds = [CONFIG_SEED],
           bump = config.bump,
       )]
     pub config: Account<'info, Config>,

@@ -25,7 +25,7 @@ pub struct CreateCollection<'info> {
     // Config PDA
     // as the update authority of the collection.
     #[account(
-           seeds = [CONFIG_SEED,collection.key().as_ref()],
+           seeds = [CONFIG_SEED],
            bump = config.bump,
        )]
     pub config: Account<'info, Config>,
