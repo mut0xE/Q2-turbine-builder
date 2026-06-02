@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenInterface};
+use mpl_core::accounts::BaseCollectionV1;
 
 use crate::constants::*;
+use crate::error::StakingError;
 use crate::state::Config;
 
 #[derive(Accounts)]
@@ -16,10 +18,20 @@ pub struct Initialize<'info> {
         init,
         payer = admin,
         space = Config::DISCRIMINATOR.len() + Config::INIT_SPACE,
-        seeds = [CONFIG_SEED],
+        seeds = [CONFIG_SEED,collection.key().as_ref()],
         bump,
     )]
     pub config: Account<'info, Config>,
+
+    #[account(has_one = update_authority @ StakingError::InvalidUpdateAuthority)]
+    pub collection: Account<'info, BaseCollectionV1>,
+
+    // CHECK: signing purposes only, derives from correct seeds
+    #[account(
+        seeds = [AUTH_SEED, collection.key().as_ref()],
+        bump,
+    )]
+    pub update_authority: UncheckedAccount<'info>,
 
     // Reward token mint — a PDA so our program is the mint authority.
     // seeds: [b"rewards"]

@@ -10,6 +10,8 @@ use instructions::*;
 #[program]
 pub mod nft_staking {
 
+    use crate::instructions::create_collection;
+
     use super::*;
 
     pub fn initialize(
@@ -18,5 +20,13 @@ pub mod nft_staking {
         freeze_period: u16,
     ) -> Result<()> {
         initialize::handler(ctx, rewards_bps, freeze_period)
+    }
+
+    pub fn create_collection(
+        ctx: Context<CreateCollection>,
+        name: String,
+        uri: String,
+    ) -> Result<()> {
+        create_collection::handler(ctx, name, uri)
     }
 }

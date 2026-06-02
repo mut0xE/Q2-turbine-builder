@@ -19,4 +19,7 @@ pub enum StakingError {
 
     #[msg("Overflow when calculating rewards")]
     Overflow,
+
+    #[msg("Invalid Update Authority")]
+    InvalidUpdateAuthority,
 }
