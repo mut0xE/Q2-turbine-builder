@@ -1,5 +1,9 @@
 use anchor_lang::prelude::*;
-use mpl_core::{instructions::CreateCollectionV2CpiBuilder, ID as MPL_CORE_ID};
+use mpl_core::{
+    instructions::CreateCollectionV2CpiBuilder,
+    types::{Attribute, Attributes, Plugin, PluginAuthorityPair},
+    ID as MPL_CORE_ID,
+};
 
 use crate::{
     constants::{AUTH_SEED, CONFIG_SEED},
@@ -55,6 +59,15 @@ pub fn handler(ctx: Context<CreateCollection>, name: String, uri: String) -> Res
         .system_program(&ctx.accounts.system_program.to_account_info())
         .name(name)
         .uri(uri)
+        .plugins(vec![PluginAuthorityPair {
+            plugin: Plugin::Attributes(Attributes {
+                attribute_list: vec![Attribute {
+                    key: "staked_count".to_string(),
+                    value: "0".to_string(),
+                }],
+            }),
+            authority: None,
+        }])
         .invoke_signed(signers_seeds)?;
 
     msg!("Collection created: {}", ctx.accounts.collection.key());
