@@ -26,7 +26,7 @@ pub struct Initialize<'info> {
     #[account(has_one = update_authority @ StakingError::InvalidUpdateAuthority)]
     pub collection: Account<'info, BaseCollectionV1>,
 
-    // CHECK: signing purposes only, derives from correct seeds
+    /// CHECK: signing purposes only, derives from correct seeds
     #[account(
         seeds = [AUTH_SEED, collection.key().as_ref()],
         bump,

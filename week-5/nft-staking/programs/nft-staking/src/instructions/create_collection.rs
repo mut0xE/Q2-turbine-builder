@@ -30,7 +30,7 @@ pub struct CreateCollection<'info> {
        )]
     pub config: Account<'info, Config>,
 
-    // CHECK: signing purposes only, derives from correct seeds
+    /// CHECK: signing purposes only, derives from correct seeds
     #[account(
         seeds = [AUTH_SEED, collection.key().as_ref()],
         bump,
