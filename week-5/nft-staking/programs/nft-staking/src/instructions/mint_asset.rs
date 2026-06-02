@@ -3,7 +3,12 @@ use crate::{
     state::Config,
 };
 use anchor_lang::prelude::*;
-use mpl_core::{accounts::BaseCollectionV1, instructions::CreateV2CpiBuilder, ID as MPL_CORE_ID};
+use mpl_core::{
+    accounts::BaseCollectionV1,
+    instructions::CreateV2CpiBuilder,
+    types::{Attribute, Attributes, Plugin, PluginAuthorityPair},
+    ID as MPL_CORE_ID,
+};
 
 #[derive(Accounts)]
 pub struct MintAsset<'info> {
@@ -64,6 +69,25 @@ pub fn handler(ctx: Context<MintAsset>, name: String, uri: String) -> Result<()>
         .system_program(&ctx.accounts.system_program)
         .name(name)
         .uri(uri)
+        .plugins(vec![PluginAuthorityPair {
+            plugin: Plugin::Attributes(Attributes {
+                attribute_list: vec![
+                    Attribute {
+                        key: "User".to_string(),
+                        value: ctx.accounts.user.key().to_string(),
+                    },
+                    Attribute {
+                        key: "Timestamp".to_string(),
+                        value: Clock::get()?.unix_timestamp.to_string(),
+                    },
+                    Attribute {
+                        key: "Staked".to_string(),
+                        value: "false".to_string(),
+                    },
+                ],
+            }),
+            authority: None,
+        }])
         .invoke_signed(signer_seeds)?;
 
     msg!("Asset minted: {}", ctx.accounts.asset.key());
