@@ -5,7 +5,7 @@ use mpl_core::{
     instructions::{
         RemovePluginV1CpiBuilder, UpdateCollectionPluginV1CpiBuilder, UpdatePluginV1CpiBuilder,
     },
-    types::{Attribute, Attributes, Plugin, PluginType, UpdateAuthority},
+    types::{Attribute, Attributes, FreezeDelegate, Plugin, PluginType, UpdateAuthority},
     ID as MPL_CORE_ID,
 };
 
@@ -35,7 +35,7 @@ pub struct Unstake<'info> {
     pub collection: Account<'info, BaseCollectionV1>,
 
     #[account(
-        seeds = [CONFIG_SEED, collection.key().as_ref()],
+        seeds = [CONFIG_SEED],
         bump = config.bump,
     )]
     pub config: Account<'info, Config>,
@@ -119,15 +119,25 @@ pub fn handler(ctx: Context<Unstake>) -> Result<()> {
         &[stake_bump],
     ]];
 
+    // First unfreeze the asset (required before removing FreezeDelegate)
+    UpdatePluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program)
+        .asset(&ctx.accounts.asset.to_account_info())
+        .collection(Some(&ctx.accounts.collection.to_account_info()))
+        .payer(&ctx.accounts.owner)
+        .authority(Some(&ctx.accounts.stake_info.to_account_info()))
+        .system_program(&ctx.accounts.system_program)
+        .plugin(Plugin::FreezeDelegate(FreezeDelegate { frozen: false }))
+        .invoke_signed(stake_signer_seeds)?;
+
+    // Owner signs the removal (FreezeDelegate is Owner Managed)
     RemovePluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program)
         .asset(&ctx.accounts.asset.to_account_info())
         .collection(Some(&ctx.accounts.collection.to_account_info()))
         .payer(&ctx.accounts.owner)
-        // stake_info PDA signs — it's the FreezeDelegate authority
-        .authority(Some(&ctx.accounts.stake_info.to_account_info()))
+        .authority(Some(&ctx.accounts.owner.to_account_info()))
         .system_program(&ctx.accounts.system_program)
         .plugin_type(PluginType::FreezeDelegate)
-        .invoke_signed(stake_signer_seeds)?;
+        .invoke()?;
 
     // STEP 3 — Update Attributes on asset
     //
