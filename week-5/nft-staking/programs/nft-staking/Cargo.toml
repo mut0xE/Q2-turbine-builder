@@ -23,7 +23,7 @@ custom-panic = []
 [dependencies]
 anchor-lang = { version = "0.32.1", features = ["init-if-needed"]}
 anchor-spl = "0.32.1"
-mpl-core = { version = "0.12.0", features = ["anchor"] }
+mpl-core = { version = "0.11.2", features = ["anchor"] }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
