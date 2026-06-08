@@ -1,8 +1,10 @@
+pub mod callback_play;
 pub mod close_game;
 pub mod initialize_game;
 pub mod play;
 pub mod update;
 pub mod withdraw;
+pub use callback_play::*;
 pub use close_game::*;
 pub use initialize_game::*;
 pub use play::*;

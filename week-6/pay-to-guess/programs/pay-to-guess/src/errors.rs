@@ -23,4 +23,6 @@ pub enum GameError {
     MathOverflow,
     #[msg("Invalid BetBps")]
     InvalidBetBps,
+    #[msg("Invalid Bet Amount")]
+    InvalidBetAmount,
 }
