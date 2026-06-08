@@ -21,4 +21,6 @@ pub enum GameError {
     Unauthorized,
     #[msg("Math overflow")]
     MathOverflow,
+    #[msg("Invalid BetBps")]
+    InvalidBetBps,
 }
