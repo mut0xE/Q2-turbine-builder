@@ -16,8 +16,8 @@ pub struct ResolveRound<'info> {
                dungeon_id.to_le_bytes().as_ref(),
                dungeon.authority.as_ref()
            ],
-           bump = dungeon.dungeon_bump
-
+           bump = dungeon.dungeon_bump,
+           has_one = authority @ DungeonError::Unauthorized,
        )]
     pub dungeon: Account<'info, Dungeon>,
 }
@@ -25,9 +25,7 @@ pub struct ResolveRound<'info> {
 impl<'info> ResolveRound<'info> {
     pub fn handler(
         &mut self,
-
         _dungeon_id: u64,
-
         remaining_accounts: &'info [AccountInfo<'info>],
     ) -> Result<()> {
         let dungeon = &mut self.dungeon;
@@ -35,6 +33,24 @@ impl<'info> ResolveRound<'info> {
         for account_info in remaining_accounts.iter() {
             let mut player_state = Account::<PlayerState>::try_from(account_info)?;
 
+            let (expected_pda, _) = Pubkey::find_program_address(
+                &[
+                    PLAYER_STATE_SEED,
+                    dungeon.key().as_ref(),
+                    player_state.player.key().as_ref(),
+                ],
+                &crate::ID,
+            );
+
+            require!(
+                remaining_accounts.len() == dungeon.total_players as usize,
+                DungeonError::MissingPlayerStates
+            );
+
+            require!(
+                account_info.key() == expected_pda,
+                DungeonError::InvalidPlayerState
+            );
             require!(
                 player_state.dungeon == dungeon.key(),
                 DungeonError::Unauthorized
