@@ -18,7 +18,6 @@ pub struct List<'info> {
         payer = maker,
         seeds = [
             LISTING_SEED,
-            market_place.key().as_ref(),
             asset.key().as_ref()
         ],
         bump
@@ -67,18 +66,21 @@ pub fn handler(ctx: Context<List>, price: u64) -> Result<()> {
     // Transfer NFT from maker to listing PDA
     // TransferV1CpiBuilder moves ownership inside MPL Core
     // After this: asset.owner = listing.key()
-    let mut builder = TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program);
-    let listing = &ctx.accounts.listing.to_account_info();
-    builder
-        .asset(&ctx.accounts.asset)
-        .payer(&ctx.accounts.maker)
-        .authority(Some(&ctx.accounts.maker)) // current owner signs
-        .new_owner(listing)
-        .system_program(Some(&ctx.accounts.system_program));
-    if let Some(collection) = &ctx.accounts.collection {
-        builder.collection(Some(collection));
-    }
-    builder.invoke()?;
+
+    let collection = ctx
+        .accounts
+        .collection
+        .as_ref()
+        .map(|collection| collection.to_account_info());
+
+    TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program)
+        .asset(&ctx.accounts.asset.to_account_info())
+        .payer(&ctx.accounts.maker.to_account_info())
+        .authority(Some(&ctx.accounts.maker.to_account_info()))
+        .new_owner(&ctx.accounts.listing.to_account_info())
+        .collection(collection.as_ref())
+        .system_program(Some(&ctx.accounts.system_program.to_account_info()))
+        .invoke()?;
 
     msg!("Listed asset: {}", ctx.accounts.asset.key());
     msg!("New owner (escrow): {}", ctx.accounts.listing.key());

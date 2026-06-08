@@ -39,6 +39,7 @@ pub struct Buy<'info> {
     pub market_place: Account<'info, MarketPlace>,
 
     #[account(
+        mut,
         seeds = [REWARDS_SEED, market_place.key().as_ref()],
         bump = market_place.rewards_bump,
         mint::decimals = 6,
@@ -60,7 +61,6 @@ pub struct Buy<'info> {
         mut,
         seeds = [
             LISTING_SEED,
-            market_place.key().as_ref(),
             asset.key().as_ref()
         ],
         bump = listing.bump,
@@ -95,7 +95,6 @@ pub struct Buy<'info> {
 }
 
 pub fn handler(ctx: Context<Buy>) -> Result<()> {
-    let market_place_key = ctx.accounts.market_place.key();
     let asset_key = ctx.accounts.asset.key();
     let listing_bump = ctx.accounts.listing.bump;
     let price = ctx.accounts.listing.price;
@@ -148,28 +147,22 @@ pub fn handler(ctx: Context<Buy>) -> Result<()> {
     //
     // listing PDA is current owner
     // must sign with listing seeds
-    let listing_seeds: &[&[&[u8]]] = &[&[
-        LISTING_SEED,
-        market_place_key.as_ref(),
-        asset_key.as_ref(),
-        &[listing_bump],
-    ]];
+    let listing_seeds: &[&[&[u8]]] = &[&[LISTING_SEED, asset_key.as_ref(), &[listing_bump]]];
 
-    let mut builder = TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program);
-    let listing = &ctx.accounts.listing.to_account_info();
-    let taker = &ctx.accounts.taker.to_account_info();
-    builder
-        .asset(&ctx.accounts.asset)
-        .payer(&ctx.accounts.taker)
-        .authority(Some(listing))
-        .new_owner(&taker)
-        .system_program(Some(&ctx.accounts.system_program));
+    let collection = ctx
+        .accounts
+        .collection
+        .as_ref()
+        .map(|collection| collection.to_account_info());
 
-    if let Some(collection) = &ctx.accounts.collection {
-        builder.collection(Some(collection));
-    }
-
-    builder.invoke_signed(listing_seeds)?;
+    TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+        .asset(&ctx.accounts.asset.to_account_info())
+        .collection(collection.as_ref())
+        .payer(&ctx.accounts.taker.to_account_info())
+        .authority(Some(&ctx.accounts.listing.to_account_info()))
+        .new_owner(&ctx.accounts.taker.to_account_info())
+        .system_program(Some(&ctx.accounts.system_program.to_account_info()))
+        .invoke_signed(listing_seeds)?;
 
     // STEP 5 — Mint reward tokens to taker
     let market_name = ctx.accounts.market_place.name.as_str();

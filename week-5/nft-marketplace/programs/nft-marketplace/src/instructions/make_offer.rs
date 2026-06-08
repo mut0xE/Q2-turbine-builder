@@ -24,7 +24,6 @@ pub struct MakeOffer<'info> {
     #[account(
         seeds = [
             LISTING_SEED,
-            market_place.key().as_ref(),
             asset.key().as_ref()
         ],
         bump = listing.bump,

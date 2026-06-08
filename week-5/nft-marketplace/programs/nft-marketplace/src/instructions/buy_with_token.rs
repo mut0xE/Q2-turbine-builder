@@ -92,7 +92,6 @@ pub struct BuyWithToken<'info> {
         mut,
         seeds = [
             LISTING_SEED,
-            market_place.key().as_ref(),
             asset.key().as_ref()
         ],
         bump = listing.bump,
@@ -116,7 +115,6 @@ pub struct BuyWithToken<'info> {
 }
 
 pub fn handler(ctx: Context<BuyWithToken>) -> Result<()> {
-    let market_place_key = ctx.accounts.market_place.key();
     let asset_key = ctx.accounts.asset.key();
     let listing_bump = ctx.accounts.listing.bump;
     let price = ctx.accounts.listing.price;
@@ -175,30 +173,22 @@ pub fn handler(ctx: Context<BuyWithToken>) -> Result<()> {
     )?;
 
     // STEP 4 — Transfer NFT: listing PDA to taker
-    let listing_seeds: &[&[&[u8]]] = &[&[
-        LISTING_SEED,
-        market_place_key.as_ref(),
-        asset_key.as_ref(),
-        &[listing_bump],
-    ]];
+    let listing_seeds: &[&[&[u8]]] = &[&[LISTING_SEED, asset_key.as_ref(), &[listing_bump]]];
 
-    let listing_info = &ctx.accounts.listing.to_account_info();
-    let taker_info = &ctx.accounts.taker.to_account_info();
+    let collection = ctx
+        .accounts
+        .collection
+        .as_ref()
+        .map(|collection| collection.to_account_info());
 
-    let mut builder = TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program);
-
-    builder
-        .asset(&ctx.accounts.asset)
-        .payer(&ctx.accounts.taker)
-        .authority(Some(listing_info))
-        .new_owner(taker_info)
-        .system_program(Some(&ctx.accounts.system_program));
-
-    if let Some(collection) = &ctx.accounts.collection {
-        builder.collection(Some(collection));
-    }
-
-    builder.invoke_signed(listing_seeds)?;
+    TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+        .asset(&ctx.accounts.asset.to_account_info())
+        .collection(collection.as_ref())
+        .payer(&ctx.accounts.taker.to_account_info())
+        .authority(Some(&ctx.accounts.listing.to_account_info()))
+        .new_owner(&ctx.accounts.taker.to_account_info())
+        .system_program(Some(&ctx.accounts.system_program.to_account_info()))
+        .invoke_signed(listing_seeds)?;
 
     // STEP 5 — Mint reward tokens to taker
     let market_name = ctx.accounts.market_place.name.clone();
