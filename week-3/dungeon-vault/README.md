@@ -9,7 +9,7 @@ An Anchor Vault program on Solana where players deposit SOL into a shared vault 
 - Each round, players pick a door (1-3). A VRF oracle picks a trap door. Players who chose the trap are eliminated.
 - Last player standing claims the full vault. On a draw, the creator reclaims it.
 
-\`\`\`mermaid
+```mermaid
 flowchart LR
     A[Initialize Vault] --> B[Players Join & Deposit SOL]
     B --> C[Submit Choices]
@@ -19,7 +19,7 @@ flowchart LR
     E -- No --> C
     E -- Last Standing --> G[claim_winner: Player Claims Vault]
     E -- All Eliminated --> H[claim_draw: Creator Reclaims Vault]
-\`\`\`
+```
 
 ## Program Instructions
 
@@ -46,11 +46,11 @@ flowchart LR
 
 ## Build and Test
 
-\`\`\`bash
+```bash
 yarn install
 anchor build && anchor deploy
 anchor test --skip-deploy
-\`\`\`
+```
 
 > Tested on Solana devnet. Requires a funded devnet wallet
 
@@ -69,6 +69,6 @@ The test suite covers all instructions:
 
 ## Program ID
 
-\`\`\`
+```
 CuXrhPFnmbt2Ktnpk5RXCR56oLnu9165hyt1zxvCGn7W
-\`\`\`
+```
