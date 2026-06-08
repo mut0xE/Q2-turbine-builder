@@ -48,4 +48,10 @@ pub enum DungeonError {
 
     #[msg("Underflow")]
     Underflow,
+
+    #[msg("Invalid Player State")]
+    InvalidPlayerState,
+
+    #[msg("Missing Player States")]
+    MissingPlayerStates,
 }
