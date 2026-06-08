@@ -1,5 +1,5 @@
 use crate::{
-    constants::{LISTING_SEED, MARKET_SEED, OFFER_SEED, TREASURY_SEED},
+    constants::{LISTING_SEED, MARKET_SEED, OFFER_SEED, OFFER_VAULT, TREASURY_SEED},
     error::MarketPlaceError,
     state::{Listing, MarketPlace, Offer},
 };
@@ -64,6 +64,16 @@ pub struct AcceptOffer<'info> {
     )]
     pub offer: Account<'info, Offer>,
 
+    #[account(
+        mut,
+        seeds = [
+            OFFER_VAULT,
+            offer.key().as_ref()
+        ],
+        bump = offer.vault_bump
+    )]
+    pub offer_vault: SystemAccount<'info>,
+
     // Treasury receives fee from offer amount
     #[account(
         mut,
@@ -96,40 +106,34 @@ pub fn handler(ctx: Context<AcceptOffer>) -> Result<()> {
         .checked_sub(fee_amount)
         .ok_or(MarketPlaceError::InvalidOfferAmount)?;
 
-    // STEP 2 — Transfer SOL from offer PDA to maker
-    // offer PDA signs with its seeds
-    let asset_key_ref = ctx.accounts.asset.key();
-    let taker_key_ref = ctx.accounts.taker.key();
-    let offer_bump = ctx.accounts.offer.bump;
+    // STEP 2 — Transfer SOL from offer vault PDA to maker
+    // offer vault PDA signs with its seeds
+    let offer_key = ctx.accounts.offer.key();
+    let vault_bump = ctx.accounts.offer.vault_bump;
 
-    let offer_seeds: &[&[&[u8]]] = &[&[
-        OFFER_SEED,
-        asset_key_ref.as_ref(),
-        taker_key_ref.as_ref(),
-        &[offer_bump],
-    ]];
+    let vault_seeds: &[&[&[u8]]] = &[&[OFFER_VAULT, offer_key.as_ref(), &[vault_bump]]];
 
     transfer(
         CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
             Transfer {
-                from: ctx.accounts.offer.to_account_info(),
+                from: ctx.accounts.offer_vault.to_account_info(),
                 to: ctx.accounts.maker.to_account_info(),
             },
-            offer_seeds,
+            vault_seeds,
         ),
         maker_amount,
     )?;
 
-    // STEP 3 — Transfer fee from offer PDA to treasury
+    // STEP 3 — Transfer fee from offer vault PDA to treasury
     transfer(
         CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
             Transfer {
-                from: ctx.accounts.offer.to_account_info(),
+                from: ctx.accounts.offer_vault.to_account_info(),
                 to: ctx.accounts.treasury.to_account_info(),
             },
-            offer_seeds,
+            vault_seeds,
         ),
         fee_amount,
     )?;

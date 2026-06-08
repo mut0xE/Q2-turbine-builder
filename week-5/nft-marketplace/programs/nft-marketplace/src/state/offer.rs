@@ -8,4 +8,5 @@ pub struct Offer {
     pub amount: u64,   //lamports (SOL) or token amount
     pub payment_mint: Option<Pubkey>,
     pub bump: u8,
+    pub vault_bump: u8,
 }

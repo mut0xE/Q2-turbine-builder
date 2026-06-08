@@ -33,26 +33,18 @@ pub struct BuyWithToken<'info> {
         seeds = [MARKET_SEED, market_place.name.as_str().as_bytes()],
         bump = market_place.bump
     )]
-    pub market_place: Account<'info, MarketPlace>,
+    pub market_place: Box<Account<'info, MarketPlace>>,
 
-    #[account(
-        constraint = payment_mint.key() == listing.payment_mint.unwrap()
-            @ MarketPlaceError::WrongPaymentMint
-    )]
-    pub payment_mint: InterfaceAccount<'info, Mint>,
+    pub payment_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    // Taker's token account for payment_mint
-    // Tokens deducted from here
     #[account(
         mut,
         associated_token::mint = payment_mint,
         associated_token::authority = taker,
         associated_token::token_program = token_program,
     )]
-    pub taker_payment_ata: InterfaceAccount<'info, TokenAccount>,
+    pub taker_payment_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    // Maker's token account for payment_mint
-    // Tokens received here
     #[account(
         init_if_needed,
         payer = taker,
@@ -60,10 +52,8 @@ pub struct BuyWithToken<'info> {
         associated_token::authority = maker,
         associated_token::token_program = token_program,
     )]
-    pub maker_payment_ata: InterfaceAccount<'info, TokenAccount>,
+    pub maker_payment_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    // Treasury ATA for payment_mint
-    // Fee tokens go here
     #[account(
         init_if_needed,
         payer = taker,
@@ -71,9 +61,8 @@ pub struct BuyWithToken<'info> {
         associated_token::authority = treasury,
         associated_token::token_program = token_program,
     )]
-    pub treasury_payment_ata: InterfaceAccount<'info, TokenAccount>,
+    pub treasury_payment_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    // Treasury PDA — authority for treasury ATA
     #[account(
         mut,
         seeds = [TREASURY_SEED, market_place.admin.as_ref()],
@@ -81,7 +70,6 @@ pub struct BuyWithToken<'info> {
     )]
     pub treasury: SystemAccount<'info>,
 
-    // Reward mint — taker gets rewards after purchase
     #[account(
         mut,
         seeds = [REWARDS_SEED, market_place.key().as_ref()],
@@ -89,9 +77,8 @@ pub struct BuyWithToken<'info> {
         mint::decimals = 6,
         mint::authority = market_place,
     )]
-    pub rewards_mint: InterfaceAccount<'info, Mint>,
+    pub rewards_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    // Taker's ATA for reward tokens
     #[account(
         init_if_needed,
         payer = taker,
@@ -99,7 +86,7 @@ pub struct BuyWithToken<'info> {
         associated_token::authority = taker,
         associated_token::token_program = token_program,
     )]
-    pub taker_rewards_ata: InterfaceAccount<'info, TokenAccount>,
+    pub taker_rewards_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -113,12 +100,11 @@ pub struct BuyWithToken<'info> {
             @ MarketPlaceError::ListingNotFound,
         constraint = listing.maker == maker.key()
             @ MarketPlaceError::Unauthorized,
-        // SPL token listing only
         constraint = listing.payment_mint.is_some()
             @ MarketPlaceError::WrongPaymentMint,
         close = maker,
     )]
-    pub listing: Account<'info, Listing>,
+    pub listing: Box<Account<'info, Listing>>,
 
     #[account(address = MPL_CORE_ID)]
     /// CHECK: MPL Core program
@@ -135,6 +121,17 @@ pub fn handler(ctx: Context<BuyWithToken>) -> Result<()> {
     let listing_bump = ctx.accounts.listing.bump;
     let price = ctx.accounts.listing.price;
     let decimals = ctx.accounts.payment_mint.decimals;
+
+    let expected_mint = ctx
+        .accounts
+        .listing
+        .payment_mint
+        .ok_or(MarketPlaceError::WrongPaymentMint)?;
+
+    require!(
+        expected_mint == ctx.accounts.payment_mint.key(),
+        MarketPlaceError::WrongPaymentMint
+    );
 
     // STEP 1 — Calculate fee
     let fee_amount = price

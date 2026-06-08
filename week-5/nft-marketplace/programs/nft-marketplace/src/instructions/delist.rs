@@ -36,6 +36,7 @@ pub struct Delist<'info> {
         bump = listing.bump,
         constraint = listing.maker == maker.key()
             @ MarketPlaceError::Unauthorized,
+        constraint = listing.asset == asset.key() @ MarketPlaceError::ListingNotFound,
         close = maker,
     )]
     pub listing: Account<'info, Listing>,

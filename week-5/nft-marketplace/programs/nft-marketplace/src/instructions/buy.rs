@@ -5,11 +5,12 @@ use crate::{
 };
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
+
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{mint_to, MintTo},
-    token_interface::{Mint, TokenAccount, TokenInterface},
+    token_interface::{mint_to, Mint, MintTo, TokenAccount, TokenInterface},
 };
+
 use mpl_core::{instructions::TransferV1CpiBuilder, ID as MPL_CORE_ID};
 
 #[derive(Accounts)]
@@ -39,7 +40,7 @@ pub struct Buy<'info> {
 
     #[account(
         seeds = [REWARDS_SEED, market_place.key().as_ref()],
-        bump,
+        bump = market_place.rewards_bump,
         mint::decimals = 6,
         mint::authority = market_place
     )]

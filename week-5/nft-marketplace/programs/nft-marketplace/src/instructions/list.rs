@@ -39,13 +39,13 @@ pub struct List<'info> {
             MARKET_SEED,
             market_place.name.as_str().as_bytes()
         ],
-        bump
+        bump = market_place.bump
     )]
     pub market_place: Account<'info, MarketPlace>,
 
     // payment_mint is None for SOL listings
     // payment_mint is Some(mint) for SPL token listings
-    pub payment_mint: InterfaceAccount<'info, Mint>,
+    pub payment_mint: Option<InterfaceAccount<'info, Mint>>,
 
     pub system_program: Program<'info, System>,
 
@@ -61,7 +61,7 @@ pub fn handler(ctx: Context<List>, price: u64) -> Result<()> {
         maker: ctx.accounts.maker.key(),
         asset: ctx.accounts.asset.key(),
         price,
-        payment_mint: Some(ctx.accounts.payment_mint.key()),
+        payment_mint: ctx.accounts.payment_mint.as_ref().map(|m| m.key()),
         bump: ctx.bumps.listing,
     });
     // Transfer NFT from maker to listing PDA
@@ -83,6 +83,9 @@ pub fn handler(ctx: Context<List>, price: u64) -> Result<()> {
     msg!("Listed asset: {}", ctx.accounts.asset.key());
     msg!("New owner (escrow): {}", ctx.accounts.listing.key());
     msg!("Price: {}", price);
-    msg!("Payment mint: {:?}", ctx.accounts.payment_mint.key());
+    msg!(
+        "Payment mint: {:?}",
+        ctx.accounts.payment_mint.as_ref().map(|m| m.key())
+    );
     Ok(())
 }
