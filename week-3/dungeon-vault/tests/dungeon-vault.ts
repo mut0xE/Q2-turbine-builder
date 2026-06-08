@@ -621,51 +621,81 @@ describe("dungeon-vault", () => {
     const p2 = await program.account.playerState.fetch(player2StatePDA);
     const p3 = await program.account.playerState.fetch(player3StatePDA);
 
-    if (p1.alive) {
-      winner = creator.payer;
-      winnerStatePDA = player1StatePDA;
-    } else if (p2.alive) {
-      winner = player2;
-      winnerStatePDA = player2StatePDA;
-    } else if (p3.alive) {
-      winner = player3;
-      winnerStatePDA = player3StatePDA;
-    } else {
-      winner = creator.payer;
-      winnerStatePDA = player1StatePDA;
-
-      console.log("Draw game -> creator withdraws vault");
-    }
-
-    console.log("Claimer:", winner.publicKey.toBase58());
-
-    const beforeVault = await connection.getBalance(vaultPDA);
-    const beforeWinner = await connection.getBalance(winner.publicKey);
-
-    const claimTx = await program.methods
-      .claimReward(dungeonId)
-      .accounts({
-        caller: winner.publicKey,
-        //@ts-ignore
-        dungeon: dungeonPDA,
-        playerState: winnerStatePDA,
-        vault: vaultPDA,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([winner])
-      .rpc();
-
-    console.log("Claim sig:", claimTx);
-
-    const afterVault = await connection.getBalance(vaultPDA);
-    const afterWinner = await connection.getBalance(winner.publicKey);
-
     const dungeon = await program.account.dungeon.fetch(dungeonPDA);
 
-    assert.equal(dungeon.claimed, true);
-    assert.deepEqual(dungeon.status, { settled: {} });
+    const beforeVault = await connection.getBalance(vaultPDA);
 
-    assert.isBelow(afterVault, beforeVault);
-    assert.isAbove(afterWinner, beforeWinner);
+    if (dungeon.alivePlayers === 0) {
+      // ── DRAW PATH ── creator claims, no playerState needed
+      console.log("Draw game -> creator withdraws vault");
+
+      const beforeCreator = await connection.getBalance(creator.publicKey);
+
+      const claimTx = await program.methods
+        .claimDraw(dungeonId)
+        .accounts({
+          authority: creator.publicKey,
+          //@ts-ignore
+          dungeon: dungeonPDA,
+          vault: vaultPDA,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([creator.payer])
+        .rpc();
+
+      console.log("Draw claim sig:", claimTx);
+
+      const afterVault = await connection.getBalance(vaultPDA);
+      const afterCreator = await connection.getBalance(creator.publicKey);
+
+      const dungeonAfter = await program.account.dungeon.fetch(dungeonPDA);
+      assert.equal(dungeonAfter.claimed, true);
+      assert.deepEqual(dungeonAfter.status, { settled: {} });
+      assert.isBelow(afterVault, beforeVault);
+      assert.isAbove(afterCreator, beforeCreator);
+    } else {
+      // ── WINNER PATH ── find the surviving player
+      let winner: Keypair;
+      let winnerStatePDA: PublicKey;
+
+      if (p1.alive) {
+        winner = creator.payer;
+        winnerStatePDA = player1StatePDA;
+      } else if (p2.alive) {
+        winner = player2;
+        winnerStatePDA = player2StatePDA;
+      } else {
+        winner = player3;
+        winnerStatePDA = player3StatePDA;
+      }
+
+      console.log("Winner:", winner.publicKey.toBase58());
+
+      const beforeWinner = await connection.getBalance(winner.publicKey);
+
+      const claimTx = await program.methods
+        .claimWinner(dungeonId)
+        .accounts({
+          caller: winner.publicKey,
+          //@ts-ignore
+          dungeon: dungeonPDA,
+          playerState: winnerStatePDA,
+          vault: vaultPDA,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([winner])
+        .rpc();
+
+      console.log("Winner claim sig:", claimTx);
+
+      const afterVault = await connection.getBalance(vaultPDA);
+      const afterWinner = await connection.getBalance(winner.publicKey);
+
+      const dungeonAfter = await program.account.dungeon.fetch(dungeonPDA);
+      assert.equal(dungeonAfter.claimed, true);
+      assert.deepEqual(dungeonAfter.status, { settled: {} });
+      assert.isBelow(afterVault, beforeVault);
+      assert.isAbove(afterWinner, beforeWinner);
+    }
   });
 });
