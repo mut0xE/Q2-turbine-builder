@@ -1,4 +1,5 @@
-pub mod claim_reward;
+pub mod claim_draw;
+pub mod claim_winner;
 pub mod delegate;
 pub mod initialize_dungeon;
 pub mod join_dungeon;
@@ -7,7 +8,8 @@ pub mod resolve_round;
 pub mod submit_choice;
 pub mod undelegate;
 
-pub use claim_reward::*;
+pub use claim_draw::*;
+pub use claim_winner::*;
 pub use delegate::*;
 pub use initialize_dungeon::*;
 pub use join_dungeon::*;

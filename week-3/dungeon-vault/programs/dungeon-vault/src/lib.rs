@@ -56,7 +56,10 @@ pub mod dungeon_vault {
         ctx.accounts.handler(dungeon_id, &ctx.remaining_accounts)
     }
 
-    pub fn claim_reward(ctx: Context<ClaimReward>, dungeon_id: u64) -> Result<()> {
+    pub fn claim_winner(ctx: Context<ClaimWinner>, dungeon_id: u64) -> Result<()> {
+        ctx.accounts.handler(dungeon_id)
+    }
+    pub fn claim_draw(ctx: Context<ClaimDraw>, dungeon_id: u64) -> Result<()> {
         ctx.accounts.handler(dungeon_id)
     }
 

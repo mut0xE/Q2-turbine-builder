@@ -9,7 +9,7 @@ An Anchor Vault program on Solana where players deposit SOL into a shared vault 
 - Each round, players pick a door (1-3). A VRF oracle picks a trap door. Players who chose the trap are eliminated.
 - Last player standing claims the full vault. On a draw, the creator reclaims it.
 
-```mermaid
+\`\`\`mermaid
 flowchart LR
     A[Initialize Vault] --> B[Players Join & Deposit SOL]
     B --> C[Submit Choices]
@@ -17,18 +17,25 @@ flowchart LR
     D --> E{Eliminated?}
     E -- Yes --> F[Player Out]
     E -- No --> C
-    E -- Last Standing --> G[Claim Vault]
-```
+    E -- Last Standing --> G[claim_winner: Player Claims Vault]
+    E -- All Eliminated --> H[claim_draw: Creator Reclaims Vault]
+\`\`\`
 
 ## Program Instructions
 
-- `initialize_dungeon` - Create a new vault with entry fee and player limit
-- `join_dungeon` - Deposit SOL into the vault and join the game
-- `submit_choice` - Pick a door (1, 2, or 3)
-- `request_randomness` - Request VRF randomness for trap selection
-- `resolve_round` - Eliminate players who picked the trap door
-- `claim_reward` - Winner withdraws all SOL from the vault
-- `delegate_account` / `undelegate` - Delegate accounts to Ephemeral Rollups for gameplay
+- `initialize_dungeon` — Create a new vault with entry fee and player limit
+- `join_dungeon` — Deposit SOL into the vault and join the game
+- `submit_choice` — Pick a door (1, 2, or 3)
+- `request_randomness` — Request VRF randomness for trap selection
+- `resolve_round` — Eliminate players who picked the trap door; only callable by the dungeon authority
+- `claim_winner` — Last surviving player withdraws the full vault
+- `claim_draw` — Creator reclaims the vault when all players are eliminated in the same round
+- `delegate_account` / `undelegate` — Delegate accounts to Ephemeral Rollups for gameplay
+
+## Security
+
+- `resolve_round` enforces `has_one = authority` so only the dungeon creator can resolve rounds. Each player state PDA is re-derived from its internal player pubkey and cross-checked against the passed account key, preventing both fake account injection and omission of active players.
+- `claim_winner` and `claim_draw` are separate instructions so the creator draw path never requires a `player_state` account. Winner identity is enforced at the account constraint level via PDA seeds, not runtime pubkey checks.
 
 ## Prerequisites
 
@@ -39,11 +46,13 @@ flowchart LR
 
 ## Build and Test
 
-```bash
+\`\`\`bash
 yarn install
-anchor build
-anchor test --skip-local-validator
-```
+anchor build && anchor deploy
+anchor test --skip-deploy
+\`\`\`
+
+> Tested on Solana devnet. Requires a funded devnet wallet
 
 ## Tests
 
@@ -55,10 +64,11 @@ The test suite covers all instructions:
 - Account delegation to Ephemeral Rollups
 - Full gameplay loop (choices, VRF, round resolution, elimination)
 - Undelegation back to mainnet
-- Winner claiming the vault reward
+- Winner claiming the vault via `claim_winner`
+- Creator reclaiming the vault via `claim_draw` on a draw outcome
 
 ## Program ID
 
-```
+\`\`\`
 CuXrhPFnmbt2Ktnpk5RXCR56oLnu9165hyt1zxvCGn7W
-```
+\`\`\`
