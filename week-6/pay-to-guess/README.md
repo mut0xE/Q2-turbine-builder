@@ -168,8 +168,6 @@ anchor run "test:all"
 | 4 | Guess out of range (9) | `InvalidGuess` (6001) |
 | 5 | Play without VRF roll ready | `NoRollAvailable` (6015) |
 
-> **Note:** Tests 1–3 exercise invalid payment scenarios (no payment, wrong destination, underpayment), but the deployed program checks `roll_ready` before introspection. Without a VRF cycle, `NoRollAvailable` fires first. The on-chain source has been updated to check introspection before `roll_ready` — after redeploy, these tests will return their intended errors.
-
 ## Stack
 
 - **Anchor** 1.0.2 with `init-if-needed`
