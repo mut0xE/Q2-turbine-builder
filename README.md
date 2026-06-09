@@ -12,10 +12,12 @@ Solana programs and tools built during the Turbine cohort. Each week focuses on 
 | 4 | [AMM](week-4/amm) | Constant-product automated market maker with PDA-secured vaults |
 | 5 | [NFT Staking](week-5/nft-staking) | Stake MPL Core NFTs and earn SPL token rewards over time |
 | 5 | [NFT Marketplace](week-5/nft-marketplace) | Full marketplace for MPL Core assets with SOL/SPL payments, offers, and rewards |
+| 6 | [Pay-to-Guess](week-6/pay-to-guess) | Provably fair dice game with instruction introspection and MagicBlock Ephemeral Rollups VRF |
 
 ## Stack
 
 - Rust / Anchor / Solana CLI
 - Metaplex Core (MPL Core)
+- MagicBlock Ephemeral Rollups / VRF
 - TypeScript (tests)
 - Axum / SQLx / Teloxide (week-7)
