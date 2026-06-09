@@ -260,7 +260,7 @@ describe("nft-marketplace", () => {
     logBalances("Balances", [
       { name: "maker", before: makerBalBefore, after: makerBalAfter },
     ]);
-
+    console.log("listing", await program.account.listing.fetch(listingPda));
     const asset = await fetchAssetV1(umi, publicKey(assetForBuySOL));
     console.log(`  asset owner  : ${asset.owner.toString()}`);
   });
