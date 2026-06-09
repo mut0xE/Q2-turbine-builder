@@ -5,15 +5,16 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-pay_to_guess = "DUmvpVXXEwrhXW8PDZoX8NapeE97hGPJfyaHnMjZiz7Y"
-
-[registry]
-url = "https://api.apr.dev"
+[programs.devnet]
+pay_to_guess = "452bo1TyLVXwB9hrcwNGQRxk23yB8nc6LAVHqspY3Dv5"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
+"test:success" = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/pay-to-guess.ts"
+"test:fail" = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/fail-cases.ts"
+"test:all" = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[hooks]

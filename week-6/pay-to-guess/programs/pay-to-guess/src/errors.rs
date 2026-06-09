@@ -17,6 +17,8 @@ pub enum GameError {
     InsufficientPayment,
     #[msg("Payment destination is not the game vault")]
     WrongPaymentDestination,
+    #[msg("Wrong Payment Destination")]
+    WrongPaymentSource,
     #[msg("Only the game authority can do this")]
     Unauthorized,
     #[msg("Math overflow")]
@@ -25,4 +27,10 @@ pub enum GameError {
     InvalidBetBps,
     #[msg("Invalid Bet Amount")]
     InvalidBetAmount,
+    #[msg("InvalidTransferData")]
+    InvalidTransferData,
+    #[msg("RollAlreadyPending")]
+    RollAlreadyPending,
+    #[msg("NoRollAvailable")]
+    NoRollAvailable,
 }

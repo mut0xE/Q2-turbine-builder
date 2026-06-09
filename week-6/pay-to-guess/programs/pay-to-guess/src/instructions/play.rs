@@ -1,8 +1,10 @@
 use anchor_lang::prelude::*;
-use ephemeral_vrf_sdk::anchor::vrf;
+
+use solana_instructions_sysvar::ID as INSTRUCTIONS_SYSVAR_ID;
+use solana_instructions_sysvar::{load_current_index_checked, load_instruction_at_checked};
 
 use crate::{
-    constants::{GAME_SEED, PLAYER_SEED},
+    constants::{GAME_SEED, PLAYER_SEED, VAULT_SEED},
     errors::GameError,
     state::{GameState, PlayerState},
 };
@@ -10,10 +12,8 @@ use crate::{
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct GuessPayload {
     pub guess: u8,
-    pub word: String,
 }
 
-#[vrf]
 #[derive(Accounts)]
 pub struct Play<'info> {
     #[account(mut)]
@@ -21,7 +21,7 @@ pub struct Play<'info> {
 
     // PlayerState PDA
     #[account(
-        init,
+        init_if_needed,
         payer = player,
         space = PlayerState::DISCRIMINATOR.len() + PlayerState::INIT_SPACE,
         seeds = [PLAYER_SEED, player.key().as_ref()],
@@ -36,14 +36,21 @@ pub struct Play<'info> {
     )]
     pub game: Account<'info, GameState>,
 
-    /// CHECK: The oracle queue
-    #[account(mut, address = ephemeral_vrf_sdk::consts::DEFAULT_EPHEMERAL_QUEUE)]
-    pub oracle_queue: AccountInfo<'info>,
+    ///CHECK: vault holds SOL
+    #[account(
+        mut,
+        seeds = [
+            VAULT_SEED,
+            game.key().as_ref()
+        ],
+        bump
+    )]
+    pub game_vault: SystemAccount<'info>,
 
     // SYSVAR_INSTRUCTIONS
     /// CHECK: validated by address constraint
-    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
-    pub instruction_sysvar: AccountInfo<'info>,
+    #[account(address = INSTRUCTIONS_SYSVAR_ID)]
+    pub instruction_sysvar: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -55,6 +62,7 @@ pub fn handler(ctx: Context<Play>, payload: GuessPayload) -> Result<()> {
     );
 
     let game = &mut ctx.accounts.game;
+
     let bet_amount = game
         .prize_pool
         .checked_mul(game.bet_bps as u64)
@@ -100,7 +108,15 @@ pub fn handler(ctx: Context<Play>, payload: GuessPayload) -> Result<()> {
     //   bytes [4..12] = lamports u64 LE
 
     let sol = decode_transfer_amount(&prev_ix.data)?;
-    require!(paid >= bet_amount, GameError::InsufficientPayment);
+    require!(sol >= bet_amount, GameError::InsufficientPayment);
+
+    require!(prev_ix.accounts.len() >= 2, GameError::InvalidTransferData);
+
+    require_keys_eq!(
+        prev_ix.accounts[0].pubkey,
+        ctx.accounts.player.key(),
+        GameError::WrongPaymentSource
+    );
 
     require_keys_eq!(
         prev_ix.accounts[1].pubkey,
@@ -108,22 +124,80 @@ pub fn handler(ctx: Context<Play>, payload: GuessPayload) -> Result<()> {
         GameError::WrongPaymentDestination
     );
 
-    ctx.accounts.player_state.set_inner(PlayerState {
-        player: ctx.accounts.player.key(),
-        guess: payload.guess,
-        paid: sol,
-        bump: ctx.bumps.player_state,
-    });
+    // Payment validated — now check VRF roll is available
+    require!(game.roll_ready, GameError::NoRollAvailable);
+
+    let roll = game.current_roll;
+    let won = payload.guess == roll;
+
+    game.roll_ready = false;
+    game.current_roll = 0;
+
+    let player_state = &mut ctx.accounts.player_state;
+    player_state.player = ctx.accounts.player.key();
+    player_state.previous_guess = player_state.current_guess;
+    player_state.current_guess = payload.guess;
+    player_state.current_paid = sol;
+    player_state.total_rounds = player_state
+        .total_rounds
+        .checked_add(1)
+        .ok_or(GameError::MathOverflow)?;
 
     game.total_rounds = game
         .total_rounds
         .checked_add(1)
         .ok_or(GameError::MathOverflow)?;
+
+    msg!(
+        "guess={} roll={} bet={} won={}",
+        payload.guess,
+        roll,
+        sol,
+        won
+    );
+
+    if won {
+        let payout = sol.checked_mul(2).ok_or(GameError::MathOverflow)?;
+        let vault_balance = ctx.accounts.game_vault.lamports();
+        let actual_payout = payout.min(vault_balance);
+
+        let game_key = game.key();
+        let seeds = &[VAULT_SEED, game_key.as_ref(), &[game.vault_bump]];
+        let signer_seeds = &[&seeds[..]];
+
+        anchor_lang::system_program::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.key(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.game_vault.to_account_info(),
+                    to: ctx.accounts.player.to_account_info(),
+                },
+                signer_seeds,
+            ),
+            actual_payout,
+        )?;
+
+        player_state.total_wins = player_state
+            .total_wins
+            .checked_add(1)
+            .ok_or(GameError::MathOverflow)?;
+
+        let game_cost = actual_payout.saturating_sub(sol);
+        game.prize_pool = game.prize_pool.saturating_sub(game_cost);
+        msg!("WIN! payout={}", actual_payout);
+    } else {
+        game.prize_pool = game
+            .prize_pool
+            .checked_add(sol)
+            .ok_or(GameError::MathOverflow)?;
+        msg!("LOSE. pool={}", game.prize_pool);
+    }
+
     Ok(())
 }
 
 fn decode_transfer_amount(data: &[u8]) -> Result<u64> {
-    require!(data.len() >= 12, GameError::BadTransferData);
+    require!(data.len() >= 12, GameError::InvalidTransferData);
     let disc = u32::from_le_bytes(
         data[0..4]
             .try_into()
@@ -135,48 +209,8 @@ fn decode_transfer_amount(data: &[u8]) -> Result<u64> {
     let lamports = u64::from_le_bytes(
         data[4..12]
             .try_into()
-            .map_err(|_| GameError::BadTransferData)?,
+            .map_err(|_| GameError::InvalidTransferData)?,
     );
 
     Ok(lamports)
-}
-
-pub fn request_randomness(ctx: Context<Play>, client_seed: u8) -> Result<()> {
-    msg!("Requesting VRF randomness...");
-
-    let ix = create_request_randomness_ix(RequestRandomnessParams {
-        payer: ctx.accounts.player.key(),
-        oracle_queue: ctx.accounts.oracle_queue.key(),
-        callback_program_id: crate::ID,
-        callback_discriminator: instruction::CallbackPlay::DISCRIMINATOR.to_vec(),
-        caller_seed: client_seed,
-        accounts_metas: Some(vec![
-            SerializableAccountMeta {
-                pubkey: ctx.accounts.player_state.key(),
-                is_writable: true,
-                is_signer: false,
-            },
-            SerializableAccountMeta {
-                pubkey: ctx.accounts.game.key(),
-                is_writable: true,
-                is_signer: false,
-            },
-            SerializableAccountMeta {
-                pubkey: ctx.accounts.game_vault.key(),
-                is_writable: true,
-                is_signer: false,
-            },
-            SerializableAccountMeta {
-                pubkey: ctx.accounts.player.key(),
-                is_writable: true,
-                is_signer: false,
-            },
-        ]),
-        ..Default::default()
-    });
-
-    ctx.accounts
-        .invoke_signed_vrf(&ctx.accounts.payer.to_account_info(), &ix)?;
-    msg!("Randomness requested ");
-    Ok(())
 }

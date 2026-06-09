@@ -40,20 +40,29 @@ pub fn handler(ctx: Context<InitializeGame>, prize_pool: u64, bet_bps: u16) -> R
     require!(prize_pool > 0, GameError::InvalidPrizePool);
     require!(bet_bps <= 10_000, GameError::InvalidBetBps);
 
+    let bet_amount = prize_pool
+        .checked_mul(bet_bps as u64)
+        .ok_or(GameError::MathOverflow)?
+        .checked_div(10_000)
+        .ok_or(GameError::MathOverflow)?;
+
+    require!(bet_amount > 0, GameError::InvalidBetAmount);
+
     ctx.accounts.game.set_inner(GameState {
         authority: ctx.accounts.authority.key(),
-        previous_secret: 0,
         prize_pool,
-        bet_amount: 0,
+        bet_amount,
         total_rounds: 0,
         bump: ctx.bumps.game,
         vault_bump: ctx.bumps.game_vault,
         bet_bps,
+        current_roll: 0,
+        roll_ready: false,
     });
 
     // Transfer authority funds into the PDA vault
     let cpi_ctx = CpiContext::new(
-        ctx.accounts.system_program.to_account_info(),
+        ctx.accounts.system_program.key(),
         Transfer {
             from: ctx.accounts.authority.to_account_info(),
             to: ctx.accounts.game_vault.to_account_info(),
