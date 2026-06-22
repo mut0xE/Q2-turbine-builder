@@ -20,4 +20,3 @@ Solana programs and tools built during the Turbine cohort. Each week focuses on 
 - Metaplex Core (MPL Core)
 - MagicBlock Ephemeral Rollups / VRF
 - TypeScript (tests)
-- Axum / SQLx / Teloxide (week-7)
